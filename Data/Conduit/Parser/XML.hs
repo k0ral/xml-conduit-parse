@@ -115,7 +115,7 @@ instance Applicative AttrParser where
   pure = return
   (<*>) = ap
 
--- | Attribute parsers can be combined with @(\<|\>)@, 'some', 'many', 'optional', 'choice', etc.
+-- | Attribute parsers can be combined with ('<|>'), 'some', 'many', 'optional', 'choice', etc.
 instance Alternative AttrParser where
   empty = AttrParser $ const $ Left $ toException $ Reexport.XmlException "AttrParser.empty" Nothing
   AttrParser f <|> AttrParser g = AttrParser $ \x -> either (const $ g x) Right (f x)
