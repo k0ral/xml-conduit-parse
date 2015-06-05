@@ -50,7 +50,7 @@ combinatorsCase = testCase "Combinators" $ do
         parser = tagName "hello" (textAttr "world") $ \world -> do
           tagNoAttr "{mynamespace}child1" $ return ()
           tagNoAttr "child2" $ return ()
-          x <- tagNoAttr "child3" content
+          x <- tagNoAttr "child3" textContent
           return (world, x)
 
 
