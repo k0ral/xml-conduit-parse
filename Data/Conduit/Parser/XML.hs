@@ -11,9 +11,11 @@ module Data.Conduit.Parser.XML
   , AttributeMap
   , AttrParser()
   , attr
+  , textAttr
   , ignoreAttrs
     -- ** Content
   , content
+  , textContent
     -- * Re-exports
     -- ** Event producers
   , Reexport.parseBytes
@@ -94,13 +96,16 @@ tagName name = tagPredicate (== name)
 tagNoAttr :: MonadCatch m => Name -> ConduitParser Event m a -> ConduitParser Event m a
 tagNoAttr name f = tagName name (return ()) $ const f
 
--- | Parse a tag content.
-content :: MonadCatch m => ConduitParser Event m Text
-content = do
+-- | Parse a tag content as 'Text'.
+textContent :: MonadCatch m => ConduitParser Event m Text
+textContent = do
   skipMany ignored
   mconcat <$> sepEndBy text ignored
   where ignored = beginDocument <|> endDocument <|> void beginDoctype <|> endDoctype <|> void instruction <|> void comment
 
+-- | Parse a tag content using a custom parsing function.
+content :: MonadCatch m => (Text -> Maybe a) -> ConduitParser Event m a
+content parse = maybe (unexpected "Invalid content.") return . parse =<< textContent
 
 newtype AttrParser a = AttrParser { runAttrParser :: AttributeMap -> Either SomeException (AttributeMap, a) }
 
@@ -123,11 +128,17 @@ instance Alternative AttrParser where
 instance MonadThrow AttrParser where
   throwM = AttrParser . const . throwM
 
--- | Single attribute parser.
-attr :: Name -> AttrParser Text
-attr name = AttrParser $ \attrs -> maybe raiseError (returnValue attrs) (Map.lookup name attrs)
+-- | Parse a single textual attribute.
+textAttr :: Name -> AttrParser Text
+textAttr name = AttrParser $ \attrs -> maybe raiseError (returnValue attrs) (Map.lookup name attrs)
   where raiseError = Left . toException $ Reexport.XmlException ("Missing attribute: " ++ show name) Nothing
         returnValue attrs contents = Right (Map.delete name attrs, contentsToText contents)
+
+-- | Parse a single attribute using a custom parsing function.
+attr :: Name -> (Text -> Maybe a) -> AttrParser a
+attr name p = do
+  x <- textAttr name
+  maybe (throwM $ Reexport.XmlException ("Invalid attribute: " ++ show name) Nothing) return (p x)
 
 -- | Consume all remaining unparsed attributes.
 ignoreAttrs :: AttrParser ()

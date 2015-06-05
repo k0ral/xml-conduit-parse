@@ -47,7 +47,7 @@ combinatorsCase = testCase "Combinators" $ do
           , "<child3>combine &lt;all&gt; <![CDATA[&content]]></child3>\n"
           , "</hello>"
           ]
-        parser = tagName "hello" (attr "world") $ \world -> do
+        parser = tagName "hello" (textAttr "world") $ \world -> do
           tagNoAttr "{mynamespace}child1" $ return ()
           tagNoAttr "child2" $ return ()
           x <- tagNoAttr "child3" content
