@@ -7,11 +7,13 @@ module Data.Conduit.Parser.XML
   , tagName
   , tagPredicate
   , tagNoAttr
+  , anyTag
     -- ** Attributes
   , AttributeMap
   , AttrParser()
   , attr
   , textAttr
+  , anyAttr
   , ignoreAttrs
     -- ** Content
   , content
@@ -47,7 +49,7 @@ import           Data.Char
 import           Data.Conduit                     hiding (await)
 import           Data.Conduit.Parser
 import           Data.Conduit.Parser.XML.Internal
-import           Data.Map                         as Map hiding (map)
+import           Data.Map                         as Map hiding (map, null)
 import           Data.Text                        as Text (Text, all, unpack)
 import           Data.XML.Types
 
@@ -55,7 +57,8 @@ import           Text.Parser.Combinators
 import qualified Text.XML.Stream.Parse            as Reexport
 -- }}}
 
--- | Parse an XML tag. This is the most generic tag parser.
+-- | Parse an XML tag, depending on its name and attributes.
+-- This is the most generic tag parser.
 --
 -- Comments, instructions and whitespace are ignored.
 tag :: (MonadCatch m)
@@ -82,7 +85,7 @@ tag checkName attrParser f = do
 
         runAttrParser' parser attributes = case runAttrParser parser attributes of
           Left e -> Left e
-          Right (a, x) -> if Map.null a then Right x else Left . toException $ Reexport.UnparsedAttributes (Map.toList a)
+          Right (a, x) -> if null a then Right x else Left . toException $ Reexport.UnparsedAttributes (Map.toList a)
 
 -- | Like 'tag', but use a predicate to select tag names.
 tagPredicate :: (MonadCatch m) => (Name -> Bool) -> AttrParser a -> (a -> ConduitParser Event m b) -> ConduitParser Event m b
@@ -96,11 +99,20 @@ tagName name = tagPredicate (== name)
 tagNoAttr :: MonadCatch m => Name -> ConduitParser Event m a -> ConduitParser Event m a
 tagNoAttr name f = tagName name (return ()) $ const f
 
+-- | Parse an XML tag, whatever its name and attributes.
+--
+-- Comments, instructions and whitespace are ignored.
+anyTag :: MonadCatch m => (Name -> [(Name, [Content])] -> ConduitParser Event m a) -> ConduitParser Event m a
+anyTag handler = tag Just (\name -> (,) name <$> many anyAttr) (uncurry handler)
+
 -- | Parse a tag content as 'Text'.
+--
+-- This parser fails if the tag is empty.
+-- To get 'mempty' instead of failing, use @textContent \<|\> mempty@.
 textContent :: MonadCatch m => ConduitParser Event m Text
 textContent = do
   skipMany ignored
-  mconcat <$> sepEndBy text ignored
+  mconcat <$> sepEndBy1 text ignored
   where ignored = beginDocument <|> endDocument <|> void beginDoctype <|> endDoctype <|> void instruction <|> void comment
 
 -- | Parse a tag content using a custom parsing function.
@@ -134,11 +146,17 @@ textAttr name = AttrParser $ \attrs -> maybe raiseError (returnValue attrs) (Map
   where raiseError = Left . toException $ Reexport.XmlException ("Missing attribute: " ++ show name) Nothing
         returnValue attrs contents = Right (Map.delete name attrs, contentsToText contents)
 
--- | Parse a single attribute using a custom parsing function.
+-- | Parse a single attribute using a specific name and a custom parsing function for its value.
 attr :: Name -> (Text -> Maybe a) -> AttrParser a
-attr name p = do
-  x <- textAttr name
-  maybe (throwM $ Reexport.XmlException ("Invalid attribute: " ++ show name) Nothing) return (p x)
+attr name fvalue = do
+  value <- textAttr name
+  maybe (throwM $ Reexport.XmlException ("Invalid attribute: " ++ show name) Nothing) return (fvalue value)
+
+-- | Parse a single attribute, whatever its name or value.
+anyAttr :: AttrParser (Name, [Content])
+anyAttr = AttrParser $ \attrs -> case keys attrs of
+  k:_ -> Right (Map.delete k attrs, (k, findWithDefault mempty k attrs))
+  _ -> Left . toException $ Reexport.XmlException "Expecting one more attribute." Nothing
 
 -- | Consume all remaining unparsed attributes.
 ignoreAttrs :: AttrParser ()
