@@ -1,5 +1,5 @@
 name:                xml-conduit-parse
-version:             0.2.0.1
+version:             0.3.0.0
 synopsis:            Streaming XML parser based on conduits.
 description:
   This library provides an alternative, hopefully higher-level implementation for the parsing part of @xml-conduit@.
