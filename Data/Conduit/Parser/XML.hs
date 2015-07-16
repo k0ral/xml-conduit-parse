@@ -7,6 +7,7 @@ module Data.Conduit.Parser.XML
   , tagName
   , tagPredicate
   , tagNoAttr
+  , tagIgnoreAttrs
   , anyTag
     -- ** Attributes
   , AttributeMap
@@ -98,6 +99,10 @@ tagName name = tagPredicate (== name)
 -- | Like 'tagName', but expect no attributes at all.
 tagNoAttr :: MonadCatch m => Name -> ConduitParser Event m a -> ConduitParser Event m a
 tagNoAttr name f = tagName name (return ()) $ const f
+
+-- | Like 'tagName', but ignore all attributes.
+tagIgnoreAttrs :: MonadCatch m => Name -> ConduitParser Event m a -> ConduitParser Event m a
+tagIgnoreAttrs name f = tagName name ignoreAttrs $ const f
 
 -- | Parse an XML tag, whatever its name and attributes.
 --
