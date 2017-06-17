@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Low-level primitives.
-module Data.Conduit.Parser.XML.Internal where
+module Data.Conduit.Parser.XML.Internal (module Data.Conduit.Parser.XML.Internal) where
 
 -- {{{ Imports
 import           Control.Applicative

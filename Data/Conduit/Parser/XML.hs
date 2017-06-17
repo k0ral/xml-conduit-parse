@@ -62,7 +62,7 @@ import qualified Text.XML.Stream.Parse            as Reexport
 -- This is the most generic tag parser.
 --
 -- Comments, instructions and whitespace are ignored.
-tag :: (MonadCatch m)
+tag :: MonadCatch m
     => (Name -> Maybe a)               -- ^ Tag name parser.
     -> (a -> AttrParser b)             -- ^ Attributes parser. It should consume all available attributes.
     -> (b -> ConduitParser Event m c)  -- ^ Children parser. It should consume all elements between the opening and closing tags.
@@ -89,11 +89,11 @@ tag checkName attrParser f = do
           Right (a, x) -> if null a then Right x else Left . toException $ Reexport.UnparsedAttributes (Map.toList a)
 
 -- | Like 'tag', but use a predicate to select tag names.
-tagPredicate :: (MonadCatch m) => (Name -> Bool) -> AttrParser a -> (a -> ConduitParser Event m b) -> ConduitParser Event m b
+tagPredicate :: MonadCatch m => (Name -> Bool) -> AttrParser a -> (a -> ConduitParser Event m b) -> ConduitParser Event m b
 tagPredicate p attrParser = tag (guard . p) (const attrParser)
 
 -- | Like 'tag', but match a single tag name.
-tagName :: (MonadCatch m) => Name -> AttrParser a -> (a -> ConduitParser Event m b) -> ConduitParser Event m b
+tagName :: MonadCatch m => Name -> AttrParser a -> (a -> ConduitParser Event m b) -> ConduitParser Event m b
 tagName name = tagPredicate (== name)
 
 -- | Like 'tagName', but expect no attributes at all.
