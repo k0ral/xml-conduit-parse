@@ -7,7 +7,7 @@ import           Control.Applicative
 import           Control.Monad.Catch
 
 import           Data.Conduit.Parser
-import           Data.Map                as Map hiding (map)
+import           Data.Map                as Map
 import           Data.Text               (Text)
 import           Data.XML.Types
 
@@ -94,7 +94,7 @@ comment = named "XML comment" $ do
   event <- await
   case event of
    EventComment t -> return t
-   _ -> unexpected $ "Expected XML comment, got: " ++ show event
+   _              -> unexpected $ "Expected XML comment, got: " ++ show event
 
 -- | Parse an 'EventCDATA'.
 cdata :: (MonadCatch m) => ConduitParser Event m Text
@@ -102,7 +102,7 @@ cdata = named "XML CDATA" $ do
   event <- await
   case event of
    EventCDATA t -> return t
-   _ -> unexpected $ "Expected XML CDATA, got: " ++ show event
+   _            -> unexpected $ "Expected XML CDATA, got: " ++ show event
 
 -- | Parse a textual 'EventContent' or an 'EventCDATA'.
 text :: (MonadCatch m) => ConduitParser Event m Text

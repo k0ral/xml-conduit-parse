@@ -1,15 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+import           Data.Conduit.Parser.XML
+
 import           Control.Applicative
 import           Control.Monad.Trans.Resource
-
 import           Data.Conduit
 import           Data.Conduit.List            (sourceList)
 import           Data.Conduit.Parser
-import           Data.Conduit.Parser.XML
 import           Data.Default
 import           Data.Foldable
-
-import qualified Language.Haskell.HLint       as HLint (hlint)
 import           Test.Tasty
 import           Test.Tasty.HUnit
 -- import           Test.Tasty.QuickCheck
@@ -19,7 +17,6 @@ main :: IO ()
 main = defaultMain $ testGroup "Tests"
   [ unitTests
   -- , properties
-  , hlint
   ]
 
 unitTests :: TestTree
@@ -100,9 +97,3 @@ orCase = testCase "<|>" $ do
           , "</hello>"
           ]
         parser = tagNoAttr "hello" $ tagNoAttr "failure" (return 1) <|> tagNoAttr "success" (return 2)
-
-
-hlint :: TestTree
-hlint = testCase "HLint check" $ do
-  result <- HLint.hlint [ "test/", "Data/" ]
-  null result @?= True

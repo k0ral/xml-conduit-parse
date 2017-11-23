@@ -47,7 +47,7 @@ import           Control.Monad
 import           Control.Monad.Catch
 
 import           Data.Char
-import           Data.Conduit                     hiding (await)
+import           Data.Conduit
 import           Data.Conduit.Parser
 import           Data.Conduit.Parser.XML.Internal
 import           Data.Map                         as Map hiding (map, null)
@@ -171,7 +171,7 @@ contentsToText :: [Content] -> Text
 contentsToText =
     mconcat . map toText
   where
-    toText (ContentText t) = t
+    toText (ContentText t)   = t
     toText (ContentEntity e) = mconcat ["&", e, ";"]
 
 -- | Alias for 'Reexport.parseText''
